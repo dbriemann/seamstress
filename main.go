@@ -24,23 +24,74 @@ func main() {
 	os.Exit(application.Run(os.Args))
 }
 
-func makeMenu() *gtk.MenuBar {
+func makeMenu(root string, children ...string) *gtk.MenuItem {
+	rootItem, err := gtk.MenuItemNewWithLabel(root)
+	failOn(err)
+	menu, err := gtk.MenuNew()
+	failOn(err)
+	rootItem.SetSubmenu(menu)
+
+	for _, c := range children {
+		if c != "" {
+			item, err := gtk.MenuItemNewWithLabel(c)
+			failOn(err)
+			menu.Add(item)
+		} else {
+			item, err := gtk.SeparatorMenuItemNew()
+			failOn(err)
+			menu.Add(item)
+		}
+	}
+	return rootItem
+}
+
+func makeMainMenu() *gtk.MenuBar {
 	mainMenu, err := gtk.MenuBarNew()
 	failOn(err)
+
 	// File..
-	fileMenu, err := gtk.MenuItemNewWithLabel("File")
-	failOn(err)
+	fileMenu := makeMenu("File", "Open", "Save", "", "Quit")
 	mainMenu.Add(fileMenu)
 	// Edit..
-	editMenu, err := gtk.MenuItemNewWithLabel("Edit")
-	failOn(err)
+	editMenu := makeMenu("Edit", "Mark", "Cut")
 	mainMenu.Add(editMenu)
-	// Help
-	helpMenu, err := gtk.MenuItemNewWithLabel("Help")
-	failOn(err)
+	// Help..
+	helpMenu := makeMenu("Help", "About")
 	mainMenu.Add(helpMenu)
 
 	return mainMenu
+}
+
+func makeMainButton(iconName string) *gtk.Button {
+	btn, err := gtk.ButtonNew()
+	failOn(err)
+	img, err := gtk.ImageNewFromIconName(iconName, gtk.ICON_SIZE_DIALOG)
+	failOn(err)
+	btn.Add(img)
+	btn.SetHExpand(true)
+	btn.SetVExpand(true)
+
+	return btn
+}
+
+func makeMainContent() *gtk.Grid {
+	grid, err := gtk.GridNew()
+	failOn(err)
+
+	openBtn := makeMainButton("gtk-open")
+	saveBtn := makeMainButton("gtk-save")
+	markBtn := makeMainButton("gtk-edit")
+	cutBtn := makeMainButton("gtk-cut")
+	undoBtn := makeMainButton("gtk-undo")
+	redoBtn := makeMainButton("gtk-redo")
+
+	grid.Attach(openBtn, 1, 1, 1, 1)
+	grid.Attach(saveBtn, 2, 1, 1, 1)
+	grid.Attach(markBtn, 1, 2, 1, 1)
+	grid.Attach(cutBtn, 2, 2, 1, 1)
+	grid.Attach(undoBtn, 1, 3, 1, 1)
+	grid.Attach(redoBtn, 2, 3, 1, 1)
+	return grid
 }
 
 func newWindow(application *gtk.Application) *gtk.ApplicationWindow {
@@ -55,8 +106,11 @@ func newWindow(application *gtk.Application) *gtk.ApplicationWindow {
 	failOn(err)
 	win.Add(mainLayout)
 
-	menu := makeMenu()
+	menu := makeMainMenu()
 	mainLayout.PackStart(menu, false, false, 0)
+
+	content := makeMainContent()
+	mainLayout.PackStart(content, true, true, 0)
 
 	win.SetDefaultSize(400, 600)
 
