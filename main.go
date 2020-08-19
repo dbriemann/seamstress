@@ -36,7 +36,12 @@ func main() {
 	gtk.Main()
 }
 
-func makeMenu(root string, children ...string) *gtk.MenuItem {
+type itemAction struct {
+	name   string
+	action func()
+}
+
+func makeMenu(root string, children ...itemAction) *gtk.MenuItem {
 	rootItem, err := gtk.MenuItemNewWithLabel(root)
 	failOn(err)
 	menu, err := gtk.MenuNew()
@@ -44,10 +49,10 @@ func makeMenu(root string, children ...string) *gtk.MenuItem {
 	rootItem.SetSubmenu(menu)
 
 	for _, c := range children {
-		if c != "" {
-			item, err := gtk.MenuItemNewWithLabel(c)
+		if c.name != "" {
+			item, err := gtk.MenuItemNewWithLabel(c.name)
 			failOn(err)
-			item.Connect("activate", openImage)
+			item.Connect("activate", c.action)
 			menu.Append(item)
 		} else {
 			item, err := gtk.SeparatorMenuItemNew()
@@ -58,20 +63,20 @@ func makeMenu(root string, children ...string) *gtk.MenuItem {
 	return rootItem
 }
 
-// TODO -- create struct: name,action menu item
+func nilfunc() {}
 
 func makeMainMenu() *gtk.MenuBar {
 	mainMenu, err := gtk.MenuBarNew()
 	failOn(err)
 
 	// File..
-	fileMenu := makeMenu("File", "Open", "Save", "", "Quit")
+	fileMenu := makeMenu("File", itemAction{"Open", openImage}, itemAction{"Save", nilfunc}, itemAction{"", nilfunc}, itemAction{"Quit", gtk.MainQuit})
 	mainMenu.Append(fileMenu)
 	// Edit..
-	editMenu := makeMenu("Edit", "Mark", "Cut")
+	editMenu := makeMenu("Edit", itemAction{"Mark", nilfunc}, itemAction{"Cut", nilfunc})
 	mainMenu.Append(editMenu)
 	// Help..
-	helpMenu := makeMenu("Help", "About")
+	helpMenu := makeMenu("Help", itemAction{"About", nilfunc})
 	mainMenu.Append(helpMenu)
 
 	return mainMenu
