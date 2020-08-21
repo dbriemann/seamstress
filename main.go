@@ -3,14 +3,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 )
 
 var (
 	mainWin *gtk.Window
 	imgWin  *gtk.Window
-	imgBox  *gtk.Box
+	img     *gtk.Image
 )
 
 func closeImg() {
@@ -36,10 +35,10 @@ func main() {
 	imgWin.Hide()
 	imgWin.Connect("destroy", closeImg)
 	// TODO: hide or undeletable
-	// imgWin.SetDeletable(false)
-	imgBox, err = gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 1)
+
+	img, err = gtk.ImageNew()
 	failOn(err)
-	imgWin.Add(imgBox)
+	imgWin.Add(img)
 
 	mainLayout, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 2)
 	failOn(err)
@@ -128,13 +127,12 @@ func openImage() {
 		chooser := dialog
 		fname := chooser.GetFilename()
 		fmt.Println(fname)
-		pix, err := gdk.PixbufNewFromFile(fname)
-		failOn(err)
 		// TODO - fail nicer
-		img, err := gtk.ImageNewFromPixbuf(pix)
+		img.SetFromFile(fname)
+		fmt.Println("W:", img.GetPixbuf().GetWidth(), "H:", img.GetPixbuf().GetHeight())
+
 		// cairo.CreateImageSurfaceForData()
-		imgBox.Add(img)
-		imgWin.Show()
+		imgWin.ShowAll()
 	}
 }
 
