@@ -49,10 +49,7 @@ func main() {
 	img, err = gtk.ImageNew()
 	failOn(err)
 	imgWin.Add(img)
-	imgWin.Connect("configure-event", func(win *gtk.Window, ev *gdk.Event) {
-		evc := gdk.EventConfigureNewFromEvent(ev)
-		carve(evc.Width(), evc.Height())
-	})
+	imgWin.SetResizable(false)
 
 	mainLayout, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 2)
 	failOn(err)
@@ -66,6 +63,7 @@ func main() {
 
 	mainWin.SetDefaultSize(400, 600)
 	mainWin.ShowAll()
+	mainWin.SetKeepAbove(true)
 	gtk.Main()
 }
 
@@ -169,8 +167,6 @@ func openImage() {
 		img.SetFromPixbuf(pix)
 
 		// TODO : look into later -> cairo.CreateImageSurfaceForData()
-		// imgWin.Resize(img.GetPixbuf().GetWidth(), img.GetPixbuf().GetHeight())
-		// TODO .. do not maximize here.... ?!
 		imgWin.ShowAll()
 	}
 }
@@ -186,6 +182,10 @@ func makeMainContent() *gtk.Grid {
 	cutBtn := makeMainButton("gtk-cut")
 	undoBtn := makeMainButton("gtk-undo")
 	redoBtn := makeMainButton("gtk-redo")
+	plusYBtn := makeMainButton("gtk-add")
+	plusXBtn := makeMainButton("gtk-add")
+	minusYBtn := makeMainButton("gtk-remove")
+	minusXBtn := makeMainButton("gtk-remove")
 
 	grid.Attach(openBtn, 1, 1, 1, 1)
 	grid.Attach(saveBtn, 2, 1, 1, 1)
@@ -193,6 +193,23 @@ func makeMainContent() *gtk.Grid {
 	grid.Attach(cutBtn, 2, 2, 1, 1)
 	grid.Attach(undoBtn, 1, 3, 1, 1)
 	grid.Attach(redoBtn, 2, 3, 1, 1)
+	l, err := gtk.LabelNew("")
+	failOn(err)
+	grid.Attach(l, 1, 4, 2, 1)
+
+	scaleGrid, err := gtk.GridNew()
+	failOn(err)
+	scaleGrid.Attach(plusYBtn, 2, 1, 1, 1)
+	scaleGrid.Attach(minusXBtn, 1, 2, 1, 1)
+	scaleGrid.Attach(plusXBtn, 3, 2, 1, 1)
+	scaleGrid.Attach(minusYBtn, 2, 3, 1, 1)
+
+	sbtn, err := gtk.SpinButtonNewWithRange(1.0, 100.0, 1.0)
+	failOn(err)
+	scaleGrid.Attach(sbtn, 2, 2, 1, 1)
+
+	grid.Attach(scaleGrid, 1, 5, 2, 2)
+
 	return grid
 }
 
