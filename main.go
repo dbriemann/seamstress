@@ -2,19 +2,22 @@ package main
 
 import (
 	"fmt"
+	"math"
 
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 )
 
 var (
-	mainWin *gtk.Window
-	imgWin  *gtk.Window
-	img     *gtk.Image
+	mainWin      *gtk.Window
+	imgWin       *gtk.Window
+	img          *gtk.Image
+	screenWidth  int
+	screenHeight int
 )
 
 func closeImg() {
 	imgWin.Hide()
-	fmt.Println("HIDE")
 }
 
 func main() {
@@ -28,6 +31,13 @@ func main() {
 		gtk.MainQuit()
 	})
 
+	display, err := gdk.DisplayGetDefault()
+	failOn(err)
+	mon, err := display.GetPrimaryMonitor()
+	failOn(err)
+	screenWidth = mon.GetWorkarea().GetWidth()
+	screenHeight = mon.GetWorkarea().GetHeight()
+
 	win, err = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
 	failOn(err)
 	imgWin = win
@@ -39,6 +49,10 @@ func main() {
 	img, err = gtk.ImageNew()
 	failOn(err)
 	imgWin.Add(img)
+	imgWin.Connect("configure-event", func(win *gtk.Window, ev *gdk.Event) {
+		evc := gdk.EventConfigureNewFromEvent(ev)
+		carve(evc.Width(), evc.Height())
+	})
 
 	mainLayout, err := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 2)
 	failOn(err)
@@ -113,6 +127,10 @@ func makeMainButton(iconName string) *gtk.Button {
 	return btn
 }
 
+func carve(twidth int, theight int) {
+	fmt.Println("carve", twidth-img.GetPixbuf().GetWidth(), theight-img.GetPixbuf().GetHeight())
+}
+
 func openImage() {
 	dialog, err := gtk.FileChooserNativeDialogNew("Open Image", mainWin, gtk.FILE_CHOOSER_ACTION_OPEN, "_Open", "_Cancel")
 	failOn(err)
@@ -128,10 +146,31 @@ func openImage() {
 		fname := chooser.GetFilename()
 		fmt.Println(fname)
 		// TODO - fail nicer
-		img.SetFromFile(fname)
-		fmt.Println("W:", img.GetPixbuf().GetWidth(), "H:", img.GetPixbuf().GetHeight())
+		pix, err := gdk.PixbufNewFromFile(fname)
+		failOn(err)
+		imgWidth := pix.GetWidth()
+		imgHeight := pix.GetHeight()
 
-		// cairo.CreateImageSurfaceForData()
+		var wdiv, hdiv int
+		if imgWidth > screenWidth {
+			wdiv = int(math.Ceil(float64(imgWidth) / float64(screenWidth)))
+		}
+		if imgHeight > screenHeight {
+			hdiv = int(math.Ceil(float64(imgHeight) / float64(screenHeight)))
+		}
+
+		if wdiv != 0 && wdiv > hdiv {
+			pix, err = pix.ScaleSimple(imgWidth/wdiv, imgHeight/wdiv, gdk.INTERP_BILINEAR)
+			failOn(err)
+		} else if hdiv != 0 {
+			pix, err = pix.ScaleSimple(imgWidth/hdiv, imgHeight/hdiv, gdk.INTERP_BILINEAR)
+			failOn(err)
+		}
+		img.SetFromPixbuf(pix)
+
+		// TODO : look into later -> cairo.CreateImageSurfaceForData()
+		// imgWin.Resize(img.GetPixbuf().GetWidth(), img.GetPixbuf().GetHeight())
+		// TODO .. do not maximize here.... ?!
 		imgWin.ShowAll()
 	}
 }
